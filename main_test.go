@@ -1,23 +1,67 @@
 package main
 
 import (
+	"fmt"
 	"os/exec"
-	"path"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
-var testDir = "./tests"
+func TestStepOne(t *testing.T) {
+	runStepTests(t, "tests/step1/*")
+}
 
-func TestStep1Valid(t *testing.T) {
-	t.Parallel()
-	cmdValid := exec.Command("go", "run", "main.go", path.Join(testDir, "step1", "valid.json"))
-	output, err := cmdValid.CombinedOutput()
+func TestStepTwo(t *testing.T) {
+	runStepTests(t, "tests/step2/*")
+}
+
+func TestStepThree(t *testing.T) {
+	runStepTests(t, "tests/step3/*")
+}
+
+func TestStepFour(t *testing.T) {
+	runStepTests(t, "tests/step4/*")
+}
+
+func TestStepFinal(t *testing.T) {
+	runStepTests(t, "tests/final/*")
+}
+
+func runStepTests(t *testing.T, filePathGlob string) {
+	// t.Parallel()
+	// Read all files in the testdata directory
+	files, err := filepath.Glob(filePathGlob)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("failed to read testdata directory: %v", err)
 	}
-	outputStr := string(output)
-	expectedOutput := "{}"
-	if outputStr != expectedOutput {
-		t.Errorf("Expected %s but got %s", expectedOutput, outputStr)
+
+	for _, file := range files {
+		t.Run(filepath.Base(file), func(t *testing.T) {
+			expectedExitCode := determineExpectedExitCode(file)
+			fmt.Printf("expectedExitCode: %v\n", expectedExitCode)
+
+			cmd := exec.Command("go", "run", "main.go", file)
+			err := cmd.Run()
+
+			exitCode := cmd.ProcessState.ExitCode()
+			fmt.Printf("exitCode: %v\n", exitCode)
+			if exitCode != expectedExitCode {
+				t.Errorf("for %s, got exit code %d, want %d", file, exitCode, expectedExitCode)
+			}
+
+			if err != nil && exitCode == 0 {
+				t.Fatalf("command failed unexpectedly: %v", err)
+			}
+		})
 	}
+}
+
+// Helper function to determine expected exit code based on filename
+func determineExpectedExitCode(filename string) int {
+	lowerFilename := strings.ToLower(filename)
+	if strings.Contains(lowerFilename, "fail") || strings.Contains(lowerFilename, "invalid") {
+		return 1 // Any non-zero exit code for fail or invalid
+	}
+	return 0 // Exit code 0 for pass or valid
 }
