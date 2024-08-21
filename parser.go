@@ -1,9 +1,5 @@
 package main
 
-import (
-	"fmt"
-)
-
 type Parser struct {
 	lexer    *Lexer
 	curToken Token // current Token
@@ -17,52 +13,48 @@ func NewParser(lexer *Lexer) *Parser {
 
 func (p *Parser) nextToken() {
 	p.curToken = *p.lexer.NextToken()
-}
-
-func (p *Parser) parse() (interface{}, error) {
-	if p.curToken.Type == LBRACE {
-		return p.parseObject()
-	} else {
-		return nil, fmt.Errorf("error: expected '{' at line: %v column: %v", p.lexer.line, p.lexer.column)
+	if p.curToken.Type == UNKOWN {
+		logger.Fatalf("error: unexpected token %v at line %v column %v\n", p.curToken.Value, p.lexer.line, p.lexer.column)
 	}
 }
 
-func (p *Parser) parseValue() (interface{}, error) {
+func (p *Parser) parse() interface{} {
+	if p.curToken.Type == LBRACE {
+		return p.parseObject()
+	} else {
+		logger.Fatalf("error: expected '{' at line: %v column: %v", p.lexer.line, p.lexer.column)
+	}
+	return nil
+}
+
+func (p *Parser) parseValue() interface{} {
 	switch p.curToken.Type {
 	case STRING:
 		value := p.curToken.Value
 		p.nextToken()
-		return value, nil
+		return value
 	case NUMBER:
 		value := p.curToken.Value
 		p.nextToken()
-		return value, nil
+		return value
 	case LBRACE:
-		obj, err := p.parseObject()
-		if err != nil {
-			return nil, err
-		}
-		return obj, nil
+		return p.parseObject()
 	case LBRACKET:
-		obj, err := p.parseArray()
-		if err != nil {
-			return nil, err
-		}
-		return obj, nil
+		return p.parseArray()
 	case TRUE:
 		p.nextToken()
-		return true, nil
+		return true
 	case FALSE:
 		p.nextToken()
-		return false, nil
+		return false
 	case NULL:
 		p.nextToken()
-		return nil, nil
+		return nil
 	}
-	return nil, nil
+	return nil
 }
 
-func (p *Parser) parseObject() (interface{}, error) {
+func (p *Parser) parseObject() interface{} {
 	obj := make(map[string]interface{})
 	p.nextToken() // Skip opening brace
 	for p.curToken.Type != RBRACE {
@@ -70,15 +62,11 @@ func (p *Parser) parseObject() (interface{}, error) {
 		p.nextToken()
 
 		if p.curToken.Value != ":" {
-			// log.Fatalf("error: expected ':' at line: %v column: %v", p.lexer.line, p.lexer.column)
-			return nil, fmt.Errorf("error: expected ':' at line: %v column: %v", p.lexer.line, p.lexer.column)
+			logger.Fatalf("error: expected ':' at line: %v column: %v", p.lexer.line, p.lexer.column)
 		}
 		p.nextToken()
 
-		value, err := p.parseValue()
-		if err != nil {
-			return nil, err
-		}
+		value := p.parseValue()
 
 		obj[key] = value
 
@@ -87,19 +75,16 @@ func (p *Parser) parseObject() (interface{}, error) {
 		}
 	}
 	p.nextToken() // Skip closing brace
-	return obj, nil
+	return obj
 }
 
-func (p *Parser) parseArray() (interface{}, error) {
+func (p *Parser) parseArray() interface{} {
 	var arr []interface{}
 
 	p.nextToken() // skip opening bracket
 
 	for p.curToken.Type != RBRACKET {
-		value, err := p.parseValue()
-		if err != nil {
-			return nil, err
-		}
+		value := p.parseValue()
 		arr = append(arr, value)
 
 		if p.curToken.Type == COMMA {
@@ -108,5 +93,5 @@ func (p *Parser) parseArray() (interface{}, error) {
 	}
 
 	p.nextToken() // skip closing bracket
-	return arr, nil
+	return arr
 }

@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 )
+
+var logger = log.New(os.Stdout, "", 0)
 
 func main() {
 	if len(os.Args) != 2 {
@@ -11,9 +14,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// filePath := os.Args[1]
-	// For debugging
-	filePath := "test.json"
+	filePath := os.Args[1]
+	// filePath := "test.json" // for debugger
 
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -23,11 +25,8 @@ func main() {
 
 	lexer := NewLexer(string(data))
 	parser := NewParser(lexer)
-	json, err := parser.parse()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	json := parser.parse()
+
 	// Assert the type to map[string]int
 	m, ok := json.(map[string]interface{})
 	if !ok {
