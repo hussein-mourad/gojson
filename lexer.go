@@ -80,7 +80,15 @@ func (l *Lexer) readString() *Token {
 	line, column := l.line, l.column
 	l.readRune() // skip opening qoute
 	for l.currentRune != '"' && l.currentRune != 0 {
-		str += string(l.currentRune)
+		if l.currentRune == '\\' {
+			l.readRune()
+			switch l.currentRune {
+			case '"', '\\', '/', 'b', 'f', 'n', 'r', 't':
+				str += string(l.currentRune)
+			}
+		} else {
+			str += string(l.currentRune)
+		}
 		l.readRune()
 	}
 	l.readRune() // skip closing quote
