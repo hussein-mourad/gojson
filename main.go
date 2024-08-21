@@ -7,19 +7,19 @@ import (
 )
 
 const (
-	LEFTBRACE    = "LEFTBRACE"
-	RIGHTBRACE   = "RIGHTBRACE"
-	LEFTBRACKET  = "LEFTBRACKET"
-	RIGHTBRACKET = "RIGHTBRACKET"
-	COMMA        = "COMMA"
-	COLON        = "COLON"
-	STRING       = "STRING"
-	NUMBER       = "NUMBER"
-	TRUE         = "TRUE"
-	FALSE        = "FALSE"
-	NULL         = "NULL"
-	EOF          = "EOF"
-	UNKOWN       = "UNKOWN"
+	LBRACE   = "LBRACE"
+	RBRACE   = "RBRACE"
+	LBRACKET = "LBRACKET"
+	RBRACKET = "RBRACKET"
+	COMMA    = "COMMA"
+	COLON    = "COLON"
+	STRING   = "STRING"
+	NUMBER   = "NUMBER"
+	TRUE     = "TRUE"
+	FALSE    = "FALSE"
+	NULL     = "NULL"
+	EOF      = "EOF"
+	UNKOWN   = "UNKOWN"
 )
 
 type Token struct {
@@ -82,6 +82,25 @@ func (l *Lexer) readNumber() *Token {
 	return NewToken(STRING, str)
 }
 
+func (l *Lexer) readStringWithoutQuotes() *Token {
+	var str string
+	tokenType := UNKOWN
+	// '\n' is for handling last record that may not have a comma
+	for l.currentRune != ',' && l.currentRune != '\n' && l.currentRune != 0 {
+		str += string(l.currentRune)
+		l.readRune()
+	}
+	switch str {
+	case "true":
+		tokenType = TRUE
+	case "false":
+		tokenType = FALSE
+	case "null":
+		tokenType = NULL
+	}
+	return NewToken(tokenType, str)
+}
+
 func (l *Lexer) skipWhitespace() {
 	for unicode.IsSpace(l.currentRune) {
 		l.readRune()
@@ -107,6 +126,11 @@ func (l *Lexer) NextToken() *Token {
 		return l.readString()
 	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-':
 		return l.readNumber()
+
+	}
+	switch {
+	case unicode.IsLetter(l.currentRune):
+		return l.readStringWithoutQuotes()
 	}
 
 	if l.currentRune == 0 {
