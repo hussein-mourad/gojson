@@ -23,16 +23,26 @@ func (p *Parser) nextToken() {
 }
 
 func isValidNumber(num string) bool {
-	v, err := strconv.Atoi(num)
-	if err != nil {
-		return false
+	// Check for float
+	_, err := strconv.ParseFloat(num, 64)
+	if err == nil {
+		// if len(strconv.FormatFloat(f, 'f', -1, 64)) == len(num) {
+		// Check if number doesn't have leading zeros
+		// return true
+		// }
+		return true
 	}
 
-	if len(strconv.Itoa(v)) != len(num) {
-		// Check if number has leading zeros
-		return false
+	// Check for int
+	v, err := strconv.Atoi(num)
+	if err == nil {
+		if len(strconv.Itoa(v)) == len(num) {
+			// Check if number doesn't have leading zeros
+			return true
+		}
 	}
-	return true
+
+	return false
 }
 
 func (p *Parser) parse() interface{} {
