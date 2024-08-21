@@ -17,6 +17,7 @@ func NewParser(lexer *Lexer) *Parser {
 
 func (p *Parser) nextToken() {
 	p.curToken = *p.lexer.NextToken()
+	// fmt.Println(p.curToken.String()) // Debug
 	if p.curToken.Type == UNKOWN {
 		logger.Fatalf("error: unexpected token %v at line %v column %v\n", p.curToken.Value, p.lexer.line, p.lexer.column)
 	}
@@ -51,12 +52,6 @@ func (p *Parser) parse() interface{} {
 		logger.Fatalf("error: unexpected %v at line: %v column: %v", p.curToken.Value, p.lexer.line, p.lexer.column)
 	}
 	return value
-	// if p.curToken.Type == LBRACE {
-	// 	return p.parseObject()
-	// } else {
-	// 	logger.Fatalf("error: expected { at line: %v column: %v", p.lexer.line, p.lexer.column)
-	// }
-	// return nil
 }
 
 func (p *Parser) parseValue() interface{} {
