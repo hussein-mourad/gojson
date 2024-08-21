@@ -90,7 +90,7 @@ func (l *Lexer) readString() *Token {
 func (l *Lexer) readNumber() *Token {
 	var str string
 	line, column := l.line, l.column
-	for unicode.IsDigit(l.currentRune) || l.currentRune == '-' || l.currentRune == '.' {
+	for unicode.IsDigit(l.currentRune) || l.currentRune == '-' || l.currentRune == '.' || l.currentRune == 'e' || l.currentRune == 'E' || l.currentRune == '+' {
 		str += string(l.currentRune)
 		l.readRune()
 	}
