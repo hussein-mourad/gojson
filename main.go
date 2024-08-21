@@ -1,31 +1,38 @@
 package main
 
 import (
-	"bufio"
-	"errors"
 	"fmt"
 	"os"
 	"unicode"
 )
 
 const (
-	LEFTBRACE    = "{"
-	RIGHTBRACE   = "}"
-	LEFTBRACKET  = "["
-	RIGHTBRACKET = "]"
-	COMMA        = ","
-	COLON        = ";"
+	LEFTBRACE    = "LEFTBRACE"
+	RIGHTBRACE   = "RIGHTBRACE"
+	LEFTBRACKET  = "LEFTBRACKET"
+	RIGHTBRACKET = "RIGHTBRACKET"
+	COMMA        = "COMMA"
+	COLON        = "COLON"
 	STRING       = "STRING"
 	NUMBER       = "NUMBER"
 	TRUE         = "TRUE"
 	FALSE        = "FALSE"
 	NULL         = "NULL"
 	EOF          = "EOF"
+	UNKOWN       = "UNKOWN"
 )
 
 type Token struct {
 	Type  string
 	Value string
+}
+
+func NewToken(Type string, Value string) *Token {
+	return &Token{Type, Value}
+}
+
+func (t *Token) String() string {
+	return fmt.Sprintf("Type: %v\tValue: %v", t.Type, t.Value)
 }
 
 type Lexer struct {
@@ -34,12 +41,16 @@ type Lexer struct {
 	currentRune rune   // current character
 }
 
-func NewToken(Type string, Value string) *Token {
-	return &Token{Type, Value}
+func NewLexer(input string) *Lexer {
+	l := &Lexer{input: input}
+	l.readRune()
+	return l
 }
 
-func NewLexer(input string) *Lexer {
-	return &Lexer{input: input}
+func (l *Lexer) makeToken(Type string) *Token {
+	value := string(l.currentRune)
+	l.readRune()
+	return NewToken(Type, value)
 }
 
 func (l *Lexer) readRune() {
@@ -51,117 +62,79 @@ func (l *Lexer) readRune() {
 	l.pos++
 }
 
-func tokenize(line string) ([]Token, error) {
-	var tokens []Token
-	for _, r := range line {
-		if r == '{' {
-			tokens = append(tokens, *NewToken(LEFTBRACE, string(r)))
-		}
-		if r == '}' {
-			tokens = append(tokens, *NewToken(RIGHTBRACE, string(r)))
-			return tokens, nil
-		}
-	}
-	return nil, errors.New("invalid line")
-}
-
-func skipWhitespaces(reader *bufio.Reader) rune {
-	for {
-		r, _, err := reader.ReadRune()
-		if err != nil {
-			break
-		}
-		if !unicode.IsSpace(r) {
-			return r
-		}
-	}
-	return 0
-}
-
-func readString(reader *bufio.Reader) string {
+func (l *Lexer) readString() *Token {
 	var str string
-	for {
-		r, _, err := reader.ReadRune()
-		if err != nil {
-			break
-		}
-		if unicode.IsSpace(r) {
-			continue
-		}
-		if r == '"' {
-			break
-		}
-		str += string(r)
+	l.readRune() // skip opening qoute
+	for l.currentRune != '"' && l.currentRune != 0 {
+		str += string(l.currentRune)
+		l.readRune()
 	}
-	return str
+	l.readRune() // skip closing quote
+	return NewToken(STRING, str)
+}
+
+func (l *Lexer) readNumber() *Token {
+	var str string
+	for unicode.IsDigit(l.currentRune) || l.currentRune == '-' || l.currentRune == '.' {
+		str += string(l.currentRune)
+		l.readRune()
+	}
+	return NewToken(STRING, str)
+}
+
+func (l *Lexer) skipWhitespace() {
+	for unicode.IsSpace(l.currentRune) {
+		l.readRune()
+	}
+}
+
+func (l *Lexer) NextToken() *Token {
+	l.skipWhitespace()
+	switch l.currentRune {
+	case '{':
+		return l.makeToken(LEFTBRACE)
+	case '}':
+		return l.makeToken(RIGHTBRACE)
+	case '[':
+		return l.makeToken(LEFTBRACKET)
+	case ']':
+		return l.makeToken(RIGHTBRACKET)
+	case ':':
+		return l.makeToken(COLON)
+	case ',':
+		return l.makeToken(COMMA)
+	case '"':
+		return l.readString()
+	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-':
+		return l.readNumber()
+	}
+
+	if l.currentRune == 0 {
+		return NewToken(EOF, "")
+	}
+
+	return l.makeToken(UNKOWN)
 }
 
 func main() {
-	// panic("Test panic")
 	if len(os.Args) != 2 {
 		fmt.Printf("Usage: %s [file.json]\n", os.Args[0])
 	}
 
 	filePath := os.Args[1]
 
-	file, err := os.Open(filePath)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
 
-	reader := bufio.NewReader(file)
+	lexer := NewLexer(string(data))
 	for {
-		var str string
-		r := skipWhitespaces(reader)
-		if r == 0 {
+		t := lexer.NextToken()
+		fmt.Printf("%v\n", t)
+		if t.Type == EOF {
 			break
 		}
-
-		switch r {
-		case '"':
-			str = readString(reader)
-		default:
-			str = string(r)
-		}
-
-		fmt.Printf("token: %v\n", str)
 	}
-
-	// r, _, _ := reader.ReadRune()
-	// r, _, _ = reader.ReadRune()
-	// fmt.Printf("r: %c\n", r)
-
-	// for {
-	// 	r, _, err := reader.ReadRune()
-	// 	if err != nil {
-	// 		break
-	// 	}
-	// 	switch r {
-	// 	case '{':
-	// 		fmt.Println("Left braces")
-	// 	case '}':
-	// 		fmt.Println("Right braces")
-	// 	case '"':
-	// 		fmt.Println("Right braces")
-	// 	case ':':
-	// 		fmt.Println("Right braces")
-	// 	}
-	// }
-
-	// fmt.Println()
-	// s := bufio.NewScanner(file)
-	// s.Split(bufio.ScanRunes)
-	// for s.Scan() {
-	// 	r := s.Text()
-	// 	fmt.Printf("r: %v\n", r)
-	// tokens, err := tokenize(line)
-	// if err != nil {
-	// 	fmt.Printf("err: %v\n", err)
-	// 	os.Exit(1)
-	// }
-	// for _, token := range tokens {
-	// 	fmt.Printf("Type: %v\tValue: %v\n", token.Type, token.Value)
-	// }
-	// }
 }

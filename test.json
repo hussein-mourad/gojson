@@ -1,0 +1,7 @@
+{
+	"hello": "world",
+	"num": 123,
+	"float": 1.23,
+	"neg": -123,
+	"neg_float": -1.23
+}
