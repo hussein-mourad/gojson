@@ -79,7 +79,7 @@ func (l *Lexer) readNumber() *Token {
 		str += string(l.currentRune)
 		l.readRune()
 	}
-	return NewToken(STRING, str)
+	return NewToken(NUMBER, str)
 }
 
 func (l *Lexer) readStringWithoutQuotes() *Token {
@@ -111,13 +111,13 @@ func (l *Lexer) NextToken() *Token {
 	l.skipWhitespace()
 	switch l.currentRune {
 	case '{':
-		return l.makeToken(LEFTBRACE)
+		return l.makeToken(LBRACE)
 	case '}':
-		return l.makeToken(RIGHTBRACE)
+		return l.makeToken(RBRACE)
 	case '[':
-		return l.makeToken(LEFTBRACKET)
+		return l.makeToken(LBRACKET)
 	case ']':
-		return l.makeToken(RIGHTBRACKET)
+		return l.makeToken(RBRACKET)
 	case ':':
 		return l.makeToken(COLON)
 	case ',':
