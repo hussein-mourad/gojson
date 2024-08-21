@@ -9,23 +9,23 @@ import (
 )
 
 func TestStepOne(t *testing.T) {
-	runStepTests(t, "tests/step1/*")
+	runStepTests(t, "testdata/step1/*")
 }
 
 func TestStepTwo(t *testing.T) {
-	runStepTests(t, "tests/step2/*")
+	runStepTests(t, "testdata/step2/*")
 }
 
 func TestStepThree(t *testing.T) {
-	runStepTests(t, "tests/step3/*")
+	runStepTests(t, "testdata/step3/*")
 }
 
 func TestStepFour(t *testing.T) {
-	runStepTests(t, "tests/step4/*")
+	runStepTests(t, "testdata/step4/*")
 }
 
 func TestStepFinal(t *testing.T) {
-	runStepTests(t, "tests/final/*")
+	runStepTests(t, "testdata/final/*")
 }
 
 func runStepTests(t *testing.T, filePathGlob string) {
