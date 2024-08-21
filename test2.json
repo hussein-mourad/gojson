@@ -1,0 +1,15 @@
+{
+	"hello": "world",
+	"arr": [
+		1,
+		"hello world",
+		true,
+		null,
+		false,
+		2.4
+	],
+	"nested": {
+		"hello": "world",
+		"num": 123
+	}
+}
