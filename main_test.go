@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -39,13 +38,13 @@ func runStepTests(t *testing.T, filePathGlob string) {
 	for _, file := range files {
 		t.Run(filepath.Base(file), func(t *testing.T) {
 			expectedExitCode := determineExpectedExitCode(file)
-			fmt.Printf("expectedExitCode: %v\n", expectedExitCode)
+			// fmt.Printf("expectedExitCode: %v\n", expectedExitCode)
 
-			cmd := exec.Command("go", "run", "main.go", file)
+			cmd := exec.Command("go", "run", ".", file)
 			err := cmd.Run()
 
 			exitCode := cmd.ProcessState.ExitCode()
-			fmt.Printf("exitCode: %v\n", exitCode)
+			// fmt.Printf("exitCode: %v\n", exitCode)
 			if exitCode != expectedExitCode {
 				t.Errorf("for %s, got exit code %d, want %d", file, exitCode, expectedExitCode)
 			}
