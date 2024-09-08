@@ -1,15 +1,19 @@
 {
-	"hello": "world",
-	"arr": [
-		1,
-		"hello world",
-		true,
-		null,
-		false,
-		2.4
-	],
-	"nested": {
-		"hello": "world",
-		"num": 123
-	}
+  "hello": "world",
+  "num": 123,
+  "float": 1.23,
+  "neg": -123,
+  "neg_float": -1.23,
+  "bool1": true,
+  "bool2": false,
+  "nil": null,
+  "arr": [
+    1,
+    2,
+    3
+  ],
+  "nested": {
+    "hello": "world",
+    "num": 123
+  }
 }
