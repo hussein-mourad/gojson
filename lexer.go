@@ -48,6 +48,20 @@ var EscapeChar = map[rune]rune{
 	't':  '\t',
 }
 
+var NumberChars = map[rune]rune{
+	'0': '0',
+	'1': '1',
+	'2': '2',
+	'3': '3',
+	'4': '4',
+	'5': '5',
+	'6': '6',
+	'7': '7',
+	'8': '8',
+	'9': '9',
+	'-': '-',
+}
+
 type Token struct {
 	Type   int
 	Value  string
@@ -114,27 +128,54 @@ func (l *Lexer) makeToken(Type int, Value string) *Token {
 func (l *Lexer) NextToken() *Token {
 	l.skipWhitespaces()
 	// Order matters
-	parsers := []func() *Token{l.readChar, l.readNumbers, l.readKeywords, l.readString}
-	var matchedToken *Token
-	for _, parser := range parsers {
-		matchedToken = parser()
-		if matchedToken != nil {
-			break
-		}
+	// parsers := []func() *Token{l.readChar, l.readNumbers, l.readKeywords, l.readString}
+	// var matchedToken *Token
+	// for _, parser := range parsers {
+	// 	matchedToken = parser()
+	// 	if matchedToken != nil {
+	// 		break
+	// 	}
+	// }
+	// return matchedToken
+
+	// read single character tokens
+	var token *Token
+	char := l.at()
+	if char == 0 {
+		return l.makeToken(EOF, "")
 	}
-	return matchedToken
+	Type, exists := CharTokens[char]
+	if exists {
+		token = l.makeToken(Type, string(char))
+		l.advance()
+		return token
+	}
+	_, exists = NumberChars[char]
+	if exists {
+		return l.readNumbers()
+	}
+	token = l.readKeywords()
+	if token != nil {
+		return token
+	}
+	token = l.readString()
+	if token != nil {
+		return token
+	}
+	l.errorUnexpectedChar(char)
+	return nil
 }
 
 func (l *Lexer) readChar() *Token {
 	char := l.at()
 	if char == 0 {
-		return newToken(EOF, "", l.line, l.column, l.index)
+		return l.makeToken(EOF, "")
 	}
 	Type, exists := CharTokens[char]
 	if !exists {
 		return nil
 	}
-	token := newToken(Type, string(char), l.line, l.column, l.index)
+	token := l.makeToken(Type, string(char))
 	l.advance()
 	return token
 }
@@ -143,12 +184,12 @@ func (l *Lexer) readString() *Token {
 	str := ""
 	found := false
 	if l.at() != '"' {
-		l.error("Expected \"")
+		l.errorUnexpectedChar(l.at())
 	}
 	l.advance() // skip opening quote
 	found = true
 	for l.at() != '"' {
-		if l.at() == '0' {
+		if l.at() == 0 {
 			l.errorEOF()
 		}
 		s := l.at()
@@ -157,6 +198,10 @@ func (l *Lexer) readString() *Token {
 			c, exists := EscapeChar[l.at()]
 			if exists {
 				s = c
+			} else if l.at() == 'u' { // unicode
+				// add \u to the string
+				str += string('\\')
+				s = 'u'
 			}
 		}
 		str += string(s)
@@ -164,7 +209,7 @@ func (l *Lexer) readString() *Token {
 	}
 
 	if l.at() != '"' {
-		l.error("Expected \"")
+		l.errorUnexpectedChar(l.at())
 	}
 	l.advance() // skip closing quote
 	if !found {
@@ -178,7 +223,7 @@ func (l *Lexer) readKeywords() *Token {
 	for keyword, Type := range KeywordTokens {
 		kwLen := len(keyword)
 		if l.index+kwLen >= len(l.input) {
-			l.errorEOF()
+			continue
 		}
 		if l.input[l.index:l.index+kwLen] == keyword {
 			token = l.makeToken(Type, keyword)
@@ -207,11 +252,11 @@ func (l *Lexer) skipWhitespaces() {
 }
 
 func (l *Lexer) advance() rune {
+	l.index++
+	l.column++
 	if l.index < len(l.input) {
 		r := rune(l.input[l.index])
 		l.current = string(r)
-		l.index++
-		l.column++
 		char := l.at()
 		if char == 0 {
 			return 0
@@ -246,6 +291,11 @@ func (l *Lexer) at() rune {
 
 func (l *Lexer) errorEOF() {
 	fmt.Printf("Error: Unexpected end of file at line: %v, column: %v\n", l.line, l.column)
+	os.Exit(1)
+}
+
+func (l *Lexer) errorUnexpectedChar(char rune) {
+	fmt.Printf("Error: Unexpected character %c at line: %v, column: %v\n", char, l.line, l.column)
 	os.Exit(1)
 }
 
