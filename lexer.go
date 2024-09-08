@@ -2,164 +2,263 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"unicode"
 )
 
 const (
-	LBRACE   = "LBRACE"
-	RBRACE   = "RBRACE"
-	LBRACKET = "LBRACKET"
-	RBRACKET = "RBRACKET"
-	COMMA    = "COMMA"
-	COLON    = "COLON"
-	STRING   = "STRING"
-	NUMBER   = "NUMBER"
-	TRUE     = "TRUE"
-	FALSE    = "FALSE"
-	NULL     = "NULL"
-	EOF      = "EOF"
-	UNKOWN   = "UNKOWN"
+	LBRACE   = iota // {
+	RBRACE          // }
+	LBRACKET        // [
+	RBRACKET        // ]
+	COLON           // :
+	COMMA           // ,
+
+	STRING
+	NUMBER
+	BOOLEAN
+	NULL
+
+	EOF
 )
 
+var CharTokens = map[rune]int{
+	'{': LBRACE,
+	'}': RBRACE,
+	'[': LBRACKET,
+	']': RBRACKET,
+	':': COLON,
+	',': COMMA,
+}
+
+var KeywordTokens = map[string]int{
+	"true":  BOOLEAN,
+	"false": BOOLEAN,
+	"null":  NULL,
+}
+
+var EscapeChar = map[rune]rune{
+	'"':  '"',
+	'\\': '\\',
+	'/':  '/',
+	'b':  '\b',
+	'f':  '\f',
+	'n':  '\n',
+	'r':  '\r',
+	't':  '\t',
+}
+
 type Token struct {
-	Type   string
+	Type   int
 	Value  string
 	Line   int
 	Column int
+	Index  int
 }
 
-func NewToken(Type string, Value string, Line int, Column int) *Token {
-	return &Token{Type, Value, Line, Column}
+func newToken(Type int, Value string, Line int, Column int, Index int) *Token {
+	return &Token{Type, Value, Line, Column, Index}
 }
 
-func (t *Token) String() string {
-	return fmt.Sprintf("Type: %v\tValue: %v\tLine: %v\tColumn: %v", t.Type, t.Value, t.Line, t.Column)
+func (t Token) String() string {
+	return fmt.Sprintf("Token{Type: %v, Value: %v, Line: %v, Column: %v, Index: %v}", t.TypeString(), t.Value, t.Line, t.Column, t.Index)
+}
+
+func (t *Token) TypeString() string {
+	var str string
+	switch t.Type {
+	case LBRACE:
+		return "LBRACE"
+	case RBRACE:
+		return "RBRACE"
+	case LBRACKET:
+		return "LBRACKET"
+	case RBRACKET:
+		return "RBRACKET"
+	case COLON:
+		return "COLON"
+	case COMMA:
+		return "COMMA"
+	case STRING:
+		return "String"
+	case NUMBER:
+		return "Number"
+	case BOOLEAN:
+		return "Boolean"
+	case NULL:
+		return "Null"
+	case EOF:
+		return "EOF"
+	}
+	return str
 }
 
 type Lexer struct {
-	input       string // code
-	pos         int    // position
-	currentRune rune   // current character
-	line        int    // current line
-	column      int    // current column
+	input   string // code
+	index   int    // index in code
+	line    int    // current line
+	column  int    // current column in line
+	current string // current character (used for debugging)
 }
 
 func NewLexer(input string) *Lexer {
-	l := &Lexer{input: input, line: 1}
-	l.readRune()
+	l := &Lexer{input: input, line: 1, column: 1}
+	l.current = string(l.at())
 	return l
 }
 
-func (l *Lexer) makeToken(Type string) *Token {
-	value, line, column := string(l.currentRune), l.line, l.column
-	l.readRune()
-	return NewToken(Type, value, line, column)
-}
-
-func (l *Lexer) readRune() {
-	if l.pos >= len(l.input) {
-		l.currentRune = 0 // EOF
-	} else {
-		l.currentRune = rune(l.input[l.pos])
-	}
-
-	// fmt.Printf("ch: %q\tline: %v\n", l.currentRune, l.line)
-
-	if l.currentRune == '\n' {
-		l.line++
-		l.column = 0
-	} else {
-		l.column++
-	}
-
-	l.pos++
-}
-
-func (l *Lexer) readString() *Token {
-	var str string
-	line, column := l.line, l.column
-	l.readRune() // skip opening qoute
-	for l.currentRune != '"' && l.currentRune != 0 {
-		if l.currentRune == '\\' {
-			l.readRune()
-			switch l.currentRune {
-			case '"', '\\', '/', 'b', 'f', 'n', 'r', 't':
-				str += string(l.currentRune)
-			}
-		} else {
-			str += string(l.currentRune)
-		}
-		l.readRune()
-	}
-	l.readRune() // skip closing quote
-	return NewToken(STRING, str, line, column)
-}
-
-func (l *Lexer) readNumber() *Token {
-	var str string
-	line, column := l.line, l.column
-	for unicode.IsDigit(l.currentRune) || l.currentRune == '-' || l.currentRune == '.' || l.currentRune == 'e' || l.currentRune == 'E' || l.currentRune == '+' {
-		str += string(l.currentRune)
-		l.readRune()
-	}
-	return NewToken(NUMBER, str, line, column)
-}
-
-func (l *Lexer) readStringWithoutQuotes() *Token {
-	var str string
-	line, column := l.line, l.column
-	tokenType := UNKOWN
-	// '\n' is for handling last record that may not have a comma
-	for l.currentRune != ',' && l.currentRune != '\n' && l.currentRune != 0 {
-		str += string(l.currentRune)
-		l.readRune()
-	}
-	switch str {
-	case "true":
-		tokenType = TRUE
-	case "false":
-		tokenType = FALSE
-	case "null":
-		tokenType = NULL
-	}
-	return NewToken(tokenType, str, line, column)
-}
-
-func (l *Lexer) skipWhitespace() {
-	for unicode.IsSpace(l.currentRune) {
-		l.readRune()
-	}
+func (l *Lexer) makeToken(Type int, Value string) *Token {
+	return newToken(Type, Value, l.line, l.column, l.index)
 }
 
 func (l *Lexer) NextToken() *Token {
-	l.skipWhitespace()
-	switch l.currentRune {
-	case '{':
-		return l.makeToken(LBRACE)
-	case '}':
-		return l.makeToken(RBRACE)
-	case '[':
-		return l.makeToken(LBRACKET)
-	case ']':
-		return l.makeToken(RBRACKET)
-	case ':':
-		return l.makeToken(COLON)
-	case ',':
-		return l.makeToken(COMMA)
-	case '"':
-		return l.readString()
-	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-':
-		return l.readNumber()
-
+	l.skipWhitespaces()
+	// Order matters
+	parsers := []func() *Token{l.readChar, l.readNumbers, l.readKeywords, l.readString}
+	var matchedToken *Token
+	for _, parser := range parsers {
+		matchedToken = parser()
+		if matchedToken != nil {
+			break
+		}
 	}
-	switch {
-	case unicode.IsLetter(l.currentRune):
-		return l.readStringWithoutQuotes()
+	return matchedToken
+}
+
+func (l *Lexer) readChar() *Token {
+	char := l.at()
+	if char == 0 {
+		return newToken(EOF, "", l.line, l.column, l.index)
+	}
+	Type, exists := CharTokens[char]
+	if !exists {
+		return nil
+	}
+	token := newToken(Type, string(char), l.line, l.column, l.index)
+	l.advance()
+	return token
+}
+
+func (l *Lexer) readString() *Token {
+	str := ""
+	found := false
+	if l.at() != '"' {
+		l.error("Expected \"")
+	}
+	l.advance() // skip opening quote
+	found = true
+	for l.at() != '"' {
+		if l.at() == '0' {
+			l.errorEOF()
+		}
+		s := l.at()
+		if l.at() == '\\' {
+			l.advance()
+			c, exists := EscapeChar[l.at()]
+			if exists {
+				s = c
+			}
+		}
+		str += string(s)
+		l.advance()
 	}
 
-	if l.currentRune == 0 {
-		return NewToken(EOF, "", l.line, l.column)
+	if l.at() != '"' {
+		l.error("Expected \"")
 	}
+	l.advance() // skip closing quote
+	if !found {
+		return nil
+	}
+	return l.makeToken(STRING, str)
+}
 
-	return l.makeToken(UNKOWN)
+func (l *Lexer) readKeywords() *Token {
+	var token *Token
+	for keyword, Type := range KeywordTokens {
+		kwLen := len(keyword)
+		if l.index+kwLen >= len(l.input) {
+			l.errorEOF()
+		}
+		if l.input[l.index:l.index+kwLen] == keyword {
+			token = l.makeToken(Type, keyword)
+			l.advanceN(kwLen)
+		}
+	}
+	return token
+}
+
+func (l *Lexer) readNumbers() *Token {
+	if !unicode.IsDigit(l.at()) && l.at() != '-' {
+		return nil
+	}
+	var num string
+	for unicode.IsDigit(l.at()) || IsOneOfMany(l.at(), '-', '.', 'e', 'E', '+') {
+		num += string(l.at())
+		l.advance()
+	}
+	return l.makeToken(NUMBER, num)
+}
+
+func (l *Lexer) skipWhitespaces() {
+	for unicode.IsSpace(l.at()) {
+		l.advance()
+	}
+}
+
+func (l *Lexer) advance() rune {
+	if l.index < len(l.input) {
+		r := rune(l.input[l.index])
+		l.current = string(r)
+		l.index++
+		l.column++
+		char := l.at()
+		if char == 0 {
+			return 0
+		}
+		if char == '\n' {
+			l.column = 1
+			l.line++
+		}
+		return r
+	}
+	return 0
+}
+
+func (l *Lexer) advanceN(n int) rune {
+	if l.index+n < len(l.input) {
+		l.index += n
+		l.column += n
+		if l.index < len(l.input) {
+			l.current = string(l.input[l.index])
+		}
+		return l.at()
+	}
+	return 0
+}
+
+func (l *Lexer) at() rune {
+	if l.index < len(l.input) {
+		return rune(l.input[l.index])
+	}
+	return 0
+}
+
+func (l *Lexer) errorEOF() {
+	fmt.Printf("Error: Unexpected end of file at line: %v, column: %v\n", l.line, l.column)
+	os.Exit(1)
+}
+
+func (l *Lexer) error(msg string) {
+	fmt.Printf("Error: %v at line: %v, column: %v\n", msg, l.line, l.column)
+	os.Exit(1)
+}
+
+func IsOneOfMany(value rune, expected ...rune) bool {
+	for _, e := range expected {
+		if value == e {
+			return true
+		}
+	}
+	return false
 }
