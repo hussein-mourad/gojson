@@ -128,42 +128,15 @@ func (l *Lexer) makeToken(Type int, Value string) *Token {
 func (l *Lexer) NextToken() *Token {
 	l.skipWhitespaces()
 	// Order matters
-	// parsers := []func() *Token{l.readChar, l.readNumbers, l.readKeywords, l.readString}
-	// var matchedToken *Token
-	// for _, parser := range parsers {
-	// 	matchedToken = parser()
-	// 	if matchedToken != nil {
-	// 		break
-	// 	}
-	// }
-	// return matchedToken
-
-	// read single character tokens
-	var token *Token
-	char := l.at()
-	if char == 0 {
-		return l.makeToken(EOF, "")
+	parsers := []func() *Token{l.readChar, l.readNumbers, l.readKeywords, l.readString}
+	var matchedToken *Token
+	for _, parser := range parsers {
+		matchedToken = parser()
+		if matchedToken != nil {
+			break
+		}
 	}
-	Type, exists := CharTokens[char]
-	if exists {
-		token = l.makeToken(Type, string(char))
-		l.advance()
-		return token
-	}
-	_, exists = NumberChars[char]
-	if exists {
-		return l.readNumbers()
-	}
-	token = l.readKeywords()
-	if token != nil {
-		return token
-	}
-	token = l.readString()
-	if token != nil {
-		return token
-	}
-	l.errorUnexpectedChar(char)
-	return nil
+	return matchedToken
 }
 
 func (l *Lexer) readChar() *Token {
