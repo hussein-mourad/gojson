@@ -22,6 +22,8 @@ const (
 	EOF
 )
 
+var EOFCHAR rune = 0
+
 var CharTokens = map[rune]int{
 	'{': LBRACE,
 	'}': RBRACE,
@@ -141,7 +143,7 @@ func (l *Lexer) NextToken() *Token {
 
 func (l *Lexer) readChar() *Token {
 	char := l.at()
-	if char == 0 {
+	if char == EOFCHAR {
 		return l.makeToken(EOF, "")
 	}
 	Type, exists := CharTokens[char]
@@ -162,7 +164,7 @@ func (l *Lexer) readString() *Token {
 	l.advance() // skip opening quote
 	found = true
 	for l.at() != '"' {
-		if l.at() == 0 {
+		if l.at() == EOFCHAR {
 			l.errorEOF()
 		}
 		s := l.at()
@@ -227,39 +229,30 @@ func (l *Lexer) skipWhitespaces() {
 func (l *Lexer) advance() rune {
 	l.index++
 	l.column++
-	if l.index < len(l.input) {
-		r := rune(l.input[l.index])
-		l.current = string(r)
-		char := l.at()
-		if char == 0 {
-			return 0
-		}
-		if char == '\n' {
-			l.column = 1
-			l.line++
-		}
-		return r
+	char := l.at()
+	if char == '\n' {
+		l.column = 1
+		l.line++
 	}
-	return 0
+	l.current = string(char)
+	return char
 }
 
 func (l *Lexer) advanceN(n int) rune {
 	if l.index+n < len(l.input) {
 		l.index += n
 		l.column += n
-		if l.index < len(l.input) {
-			l.current = string(l.input[l.index])
-		}
+		l.current = string(l.at())
 		return l.at()
 	}
-	return 0
+	return EOFCHAR
 }
 
 func (l *Lexer) at() rune {
 	if l.index < len(l.input) {
 		return rune(l.input[l.index])
 	}
-	return 0
+	return EOFCHAR
 }
 
 func (l *Lexer) errorEOF() {
