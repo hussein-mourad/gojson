@@ -14,19 +14,21 @@ var logger = log.New(os.Stderr, "", 0)
 type Parser struct {
 	lexer        *lexer.Lexer
 	currentToken *lexer.Token // current Token
+	document     *ast.Document
+	data         interface{}
 }
 
 func NewParser(lexer *lexer.Lexer) *Parser {
-	p := &Parser{lexer: lexer}
+	document := ast.NewDocument()
+	p := &Parser{lexer: lexer, document: document}
 	p.eat()
 	return p
 }
 
 func (p *Parser) Parse() ast.Document {
-	document := ast.NewDocument()
-	document.Body = p.parseValue()
+	p.document.Body = p.parseValue()
 	p.expect(lexer.EOF, "Unexpected character")
-	return *document
+	return *p.document
 }
 
 func (p *Parser) parseValue() ast.Stmt {
