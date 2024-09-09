@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/hussein-mourad/go-json-parser/lexer"
 )
 
 var logger = log.New(os.Stdout, "", 0)
@@ -23,14 +25,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	lexer := NewLexer(string(data))
+	lex := lexer.NewLexer(string(data))
 	for {
-		token := lexer.NextToken()
+		token := lex.NextToken()
 		if token == nil {
 			break
 		}
 		fmt.Printf("Type: %v\tValue: %q\n", token.TypeString(), token.Value)
-		if token.Type == EOF {
+		if token.Type == lexer.EOF {
 			break
 		}
 	}
