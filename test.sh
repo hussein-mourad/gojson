@@ -7,7 +7,7 @@ for file in testdata/**/*.json; do
     echo "final files aren't used"
     ;;
   *)
-    go run . "$file"
+    go run main.go "$file"
     ;;
   esac
 done
