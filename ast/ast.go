@@ -20,7 +20,7 @@ func NewDocument() *Document {
 type Property struct {
 	Type  string
 	Key   *Identifier
-	Value *Literal
+	Value Stmt
 }
 
 func (p Property) GetType() string {

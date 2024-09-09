@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -10,7 +9,7 @@ import (
 	"github.com/hussein-mourad/go-json-parser/lexer"
 )
 
-var logger = log.New(os.Stdout, "", 0)
+var logger = log.New(os.Stderr, "", 0)
 
 type Parser struct {
 	lexer        *lexer.Lexer
@@ -23,11 +22,11 @@ func NewParser(lexer *lexer.Lexer) *Parser {
 	return p
 }
 
-func (p *Parser) Parse() *ast.Document {
+func (p *Parser) Parse() ast.Document {
 	document := ast.NewDocument()
 	document.Body = p.parseValue()
 	p.expect(lexer.EOF, "Unexpected character")
-	return document
+	return *document
 }
 
 func (p *Parser) parseValue() ast.Stmt {
@@ -58,13 +57,15 @@ func (p *Parser) parseObject() *ast.Object {
 		property.Key.Value = p.eat().Value
 		p.expect(lexer.COLON, "Expected :")
 		p.eat()
-		property.Value = property.Value
+		property.Value = p.parseValue()
 		obj.Members = append(obj.Members, property)
 		// If there is a comma then there should be new values
-		if p.at().Type == lexer.COMMA {
+		if p.currentToken.Type == lexer.COMMA {
 			p.eat()
 			p.notExpect(lexer.RBRACE, "Unexpected }")
 			p.notExpect(lexer.RBRACKET, "Unexpected ]")
+		} else {
+			break
 		}
 	}
 	p.eat() // Skip closing brace
@@ -74,10 +75,10 @@ func (p *Parser) parseObject() *ast.Object {
 func (p *Parser) parseArray() *ast.Array {
 	arr := ast.NewArray()
 	p.eat() // skip opening bracket
-	for p.at().Type != lexer.RBRACKET {
+	for p.currentToken.Type != lexer.RBRACKET {
 		p.notExpect(lexer.EOF, "Unexpected end of file")
 		arr.Elements = append(arr.Elements, p.parseValue())
-		if p.at().Type == lexer.COMMA {
+		if p.currentToken.Type == lexer.COMMA {
 			p.eat()
 			p.notExpect(lexer.RBRACE, "Unexpected }")
 			p.notExpect(lexer.RBRACKET, "Unexpected ]")
@@ -115,7 +116,7 @@ func (p *Parser) parseNumber() *ast.NumberLiteral {
 }
 
 func (p *Parser) isEOF() bool {
-	return p.at().Type == lexer.EOF
+	return p.currentToken.Type == lexer.EOF
 }
 
 func (p *Parser) at() *lexer.Token {
@@ -126,7 +127,7 @@ func (p *Parser) eat() *lexer.Token {
 	// Returns the previous token and then advances
 	prev := p.currentToken
 	p.currentToken = p.lexer.NextToken()
-	fmt.Println(p.currentToken) // FIXME: debugging only
+	// fmt.Println(p.currentToken) // FIXME: debugging only
 	return prev
 }
 
@@ -143,5 +144,5 @@ func (p *Parser) notExpect(Type lexer.TokenType, err string) {
 }
 
 func (p *Parser) error(msg string) {
-	log.Fatalf("Error: %v on line %v, column %v", msg, p.at().Line, p.at().Column)
+	logger.Fatalf("Error: %v on line %v, column %v", msg, p.at().Line, p.at().Column)
 }
