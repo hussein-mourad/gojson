@@ -6,7 +6,7 @@ type Stmt interface {
 
 type Document struct {
 	Type string
-	Body *Stmt
+	Body Stmt
 }
 
 func (d Document) GetType() string {

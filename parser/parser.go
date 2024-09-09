@@ -23,30 +23,20 @@ func NewParser(lexer *lexer.Lexer) *Parser {
 }
 
 func (p *Parser) Parse() interface{} {
-	// document := ast.NewDocument()
-	p.eat()
-
-	// JSON must be an array or an object
-	if p.currentToken.Type != lexer.LBRACE && p.currentToken.Type != lexer.LBRACKET {
-		logger.Fatalf("error: unexpected %v at line: %v column: %v", p.currentToken.Value, p.currentToken.Line, p.currentToken.Column)
-	}
-	value := p.parseValue()
-	if value == nil {
-		logger.Fatalf("error: unexpected %v at line: %v column: %v", p.currentToken.Value, p.currentToken.Line, p.currentToken.Column)
-	}
-	return value
+	document := ast.NewDocument()
+	document.Body = p.parseValue()
+	p.expect(lexer.EOF, "Unexpected character")
+	return document
 }
 
-func (p *Parser) parseValue() interface{} {
+func (p *Parser) parseValue() ast.Stmt {
 	switch p.at().Type {
 	case lexer.LBRACE:
 		return p.parseObject()
 	case lexer.LBRACKET:
 		return p.parseArray()
 	case lexer.STRING:
-		value := p.at().Value
-		p.eat()
-		return value
+		return p.parseString()
 	case lexer.NUMBER:
 		return p.parseNumber()
 	case lexer.BOOLEAN:
@@ -61,96 +51,67 @@ func (p *Parser) parseValue() interface{} {
 func (p *Parser) parseObject() *ast.Object {
 	obj := ast.NewObject()
 	p.eat() // Skip opening brace
-	// for p.at().Type != lexer.RBRACE {
-	// 	if p.isEOF() {
-	// 		// TODO: Print Error
-	// 	}
-	// 	key := p.eat().Value
-	//
-	// 	if p.currentToken.Type != lexer.COMMA {
-	// 		logger.Fatalf("Error: expected : at line: %v column: %v", p.currentToken.Line, p.currentToken.Column)
-	// 	}
-	// 	p.eat()
-	//
-	// 	value := p.parseValue()
-	//
-	// 	obj[key] = value
-	//
-	// 	if p.currentToken.Type == lexer.COMMA {
-	// 		p.eat()
-	// 		if p.currentToken.Type == lexer.RBRACE {
-	// 			logger.Fatalf("error: unexpected , at line: %v column: %v", p.currentToken.Line, p.currentToken.Column)
-	// 		}
-	// 	}
-	// }
-	// p.eat() // Skip closing brace
-	// return obj
+	for p.at().Type != lexer.RBRACE {
+		p.notExpect(lexer.EOF, "Unexpected end of file")
+		property := ast.NewProperty()
+		key := ast.NewIdentifier()
+		key.Value = p.eat().Value
+		property.Key = key
+		p.expect(lexer.COMMA, "Expected :")
+		p.eat()
+		obj.Members = append(obj.Members, p.parseValue())
+		// If there is a comma then there should be new values
+		if p.currentToken.Type == lexer.COMMA {
+			p.eat()
+			p.notExpect(lexer.RBRACE, "Unexpected }")
+			p.notExpect(lexer.RBRACKET, "Unexpected ]")
+		}
+	}
+	p.eat() // Skip closing brace
 	return obj
 }
 
-func (p *Parser) parseArray() interface{} {
-	// TODO: Fix Parsing array eof issues, check pass2.json test
-	var arr []interface{}
+func (p *Parser) parseArray() *ast.Array {
+	arr := ast.NewArray()
 	p.eat() // skip opening bracket
-
 	for p.currentToken.Type != lexer.RBRACKET {
-		value := p.parseValue()
-		arr = append(arr, value)
-
-		fmt.Printf("p.curToken: %v\n", p.currentToken.String())
-		p.eat()
-
-		if p.currentToken.Type != lexer.COMMA && p.currentToken.Type != lexer.RBRACKET && p.currentToken.Type != lexer.EOF {
-			logger.Fatalf("error: unexpected %v at line: %v column: %v", p.currentToken.Value, p.currentToken.Line, p.currentToken.Column)
-		}
-
-		// Handle extra comma before the end of the array
+		p.notExpect(lexer.EOF, "Unexpected end of file")
+		arr.Elements = append(arr.Elements, p.parseValue())
 		if p.currentToken.Type == lexer.COMMA {
-			// Move to the next token after the comma
 			p.eat()
-
-			// After a comma, there should be either a value or the end of the array
-			if p.currentToken.Type == lexer.RBRACKET {
-				logger.Fatalf("error: unexpected %v after comma at line: %v column: %v", p.currentToken.Value, p.currentToken.Line, p.currentToken.Column)
-			}
-		}
-
-		// If the token is lexer.EOF, handle it appropriately
-		if p.currentToken.Type == lexer.EOF {
-			// End of file without closing bracket
-			logger.Fatalf("error: unexpected end of file while parsing array at line: %v column: %v", p.currentToken.Line, p.currentToken.Column)
-			return arr // Or handle the error based on your needs
+			p.notExpect(lexer.RBRACE, "Unexpected }")
+			p.notExpect(lexer.RBRACKET, "Unexpected ]")
 		}
 	}
-
 	p.eat() // skip closing bracket
 	return arr
 }
 
-func (p *Parser) parseNumber() interface{} {
-	s := p.currentToken.Value
-
-	// Try to parse as int
-	if intVal, err := strconv.Atoi(s); err == nil {
-		if len(strconv.Itoa(intVal)) != len(s) {
-			// Check if number doesn't have leading zeros
-			logger.Fatalf("error: invalid number %v at line: %v column: %v", s, p.currentToken.Line, p.currentToken.Column)
-		}
-		p.eat()
-		return intVal
-	}
-	// Try to parse as float
-	if floatVal, err := strconv.ParseFloat(s, 64); err == nil {
-		p.eat()
-		return floatVal
-	}
-
-	logger.Fatalf("error: invalid number %v at line: %v column: %v", s, p.currentToken.Line, p.currentToken.Column)
-	return nil
+func (p *Parser) parseString() *ast.StringLiteral {
+	return ast.NewStringLiteral(p.eat().Value)
 }
 
-func (p *Parser) parseBoolean() bool {
-	return p.eat().Value == "true"
+func (p *Parser) parseBoolean() *ast.BooleanLiteral {
+	return ast.NewBooleanLiteral(p.eat().Value == "true")
+}
+
+func (p *Parser) parseNumber() *ast.NumberLiteral {
+	value := p.eat().Value
+	intVal, err := strconv.ParseInt(value, 10, 64)
+	if err == nil {
+		return ast.NewNumberLiteral(intVal)
+	}
+	floatVal, err := strconv.ParseFloat(value, 64)
+	if err == nil {
+		return ast.NewNumberLiteral(floatVal)
+	}
+
+	complexVal, err := strconv.ParseComplex(value, 128)
+	if err == nil {
+		return ast.NewNumberLiteral(complexVal)
+	}
+	p.error("Can't parse number")
+	return nil
 }
 
 func (p *Parser) isEOF() bool {
@@ -171,6 +132,16 @@ func (p *Parser) eat() *lexer.Token {
 
 func (p *Parser) expect(Type lexer.TokenType, err string) {
 	if p.at().Type != Type {
-		log.Fatalf("Error: %v on line %v, column %v", err, p.at().Line, p.at().Column)
+		p.error(err)
 	}
+}
+
+func (p *Parser) notExpect(Type lexer.TokenType, err string) {
+	if p.at().Type == Type {
+		p.error(err)
+	}
+}
+
+func (p *Parser) error(msg string) {
+	log.Fatalf("Error: %v on line %v, column %v", msg, p.at().Line, p.at().Column)
 }
