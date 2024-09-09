@@ -6,18 +6,19 @@ import (
 	"os"
 
 	"github.com/hussein-mourad/go-json-parser/lexer"
+	"github.com/hussein-mourad/go-json-parser/parser"
 )
 
 var logger = log.New(os.Stdout, "", 0)
 
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Printf("Usage: %s [file.json]\n", os.Args[0])
-		os.Exit(1)
-	}
-
-	filePath := os.Args[1]
-	// filePath := "./testdata/final/pass1.json" // FIXME: for debugging only
+	// if len(os.Args) != 2 {
+	// 	fmt.Printf("Usage: %s [file.json]\n", os.Args[0])
+	// 	os.Exit(1)
+	// }
+	//
+	// filePath := os.Args[1]
+	filePath := "./testdata/step2/valid.json" // FIXME: for debugging only
 
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -26,18 +27,19 @@ func main() {
 	}
 
 	lex := lexer.NewLexer(string(data))
-	for {
-		token := lex.NextToken()
-		if token == nil {
-			break
-		}
-		fmt.Printf("Type: %v\tValue: %q\n", token.TypeString(), token.Value)
-		if token.Type == lexer.EOF {
-			break
-		}
-	}
-	// parser := NewParser(lexer)
-	// json := parser.parse()
+	// for {
+	// 	token := lex.NextToken()
+	// 	if token == nil {
+	// 		break
+	// 	}
+	// 	fmt.Printf("Type: %v\tValue: %q\n", token.TypeString(), token.Value)
+	// 	if token.Type == lexer.EOF {
+	// 		break
+	// 	}
+	// }
+	p := parser.NewParser(lex)
+	ast := p.Parse()
+	fmt.Println(ast.Body)
 	//
 	// fmt.Printf("reflect.TypeOf(json): %v\n", reflect.TypeOf(json))
 	// Assert the type to map[string]int

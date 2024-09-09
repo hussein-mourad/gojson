@@ -19,10 +19,11 @@ type Parser struct {
 
 func NewParser(lexer *lexer.Lexer) *Parser {
 	p := &Parser{lexer: lexer}
+	p.eat()
 	return p
 }
 
-func (p *Parser) Parse() interface{} {
+func (p *Parser) Parse() *ast.Document {
 	document := ast.NewDocument()
 	document.Body = p.parseValue()
 	p.expect(lexer.EOF, "Unexpected character")
@@ -54,14 +55,13 @@ func (p *Parser) parseObject() *ast.Object {
 	for p.at().Type != lexer.RBRACE {
 		p.notExpect(lexer.EOF, "Unexpected end of file")
 		property := ast.NewProperty()
-		key := ast.NewIdentifier()
-		key.Value = p.eat().Value
-		property.Key = key
-		p.expect(lexer.COMMA, "Expected :")
+		property.Key.Value = p.eat().Value
+		p.expect(lexer.COLON, "Expected :")
 		p.eat()
-		obj.Members = append(obj.Members, p.parseValue())
+		property.Value = property.Value
+		obj.Members = append(obj.Members, property)
 		// If there is a comma then there should be new values
-		if p.currentToken.Type == lexer.COMMA {
+		if p.at().Type == lexer.COMMA {
 			p.eat()
 			p.notExpect(lexer.RBRACE, "Unexpected }")
 			p.notExpect(lexer.RBRACKET, "Unexpected ]")
@@ -74,10 +74,10 @@ func (p *Parser) parseObject() *ast.Object {
 func (p *Parser) parseArray() *ast.Array {
 	arr := ast.NewArray()
 	p.eat() // skip opening bracket
-	for p.currentToken.Type != lexer.RBRACKET {
+	for p.at().Type != lexer.RBRACKET {
 		p.notExpect(lexer.EOF, "Unexpected end of file")
 		arr.Elements = append(arr.Elements, p.parseValue())
-		if p.currentToken.Type == lexer.COMMA {
+		if p.at().Type == lexer.COMMA {
 			p.eat()
 			p.notExpect(lexer.RBRACE, "Unexpected }")
 			p.notExpect(lexer.RBRACKET, "Unexpected ]")
@@ -115,7 +115,7 @@ func (p *Parser) parseNumber() *ast.NumberLiteral {
 }
 
 func (p *Parser) isEOF() bool {
-	return p.currentToken.Type == lexer.EOF
+	return p.at().Type == lexer.EOF
 }
 
 func (p *Parser) at() *lexer.Token {

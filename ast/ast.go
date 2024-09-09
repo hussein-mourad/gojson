@@ -28,12 +28,13 @@ func (p Property) GetType() string {
 }
 
 func NewProperty() *Property {
-	return &Property{Type: "Property"}
+	Identifier := NewIdentifier()
+	return &Property{Type: "Property", Key: Identifier}
 }
 
 type Object struct {
 	Type    string
-	Members []Stmt
+	Members []*Property
 }
 
 func (o Object) GetType() string {
