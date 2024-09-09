@@ -2,6 +2,8 @@ package lexer
 
 import "fmt"
 
+type TokenType int
+
 const (
 	LBRACE   = iota // {
 	RBRACE          // }
@@ -19,14 +21,14 @@ const (
 )
 
 type Token struct {
-	Type   int
+	Type   TokenType
 	Value  string
 	Line   int
 	Column int
 	Index  int
 }
 
-func newToken(Type int, Value string, Line int, Column int, Index int) *Token {
+func newToken(Type TokenType, Value string, Line int, Column int, Index int) *Token {
 	return &Token{Type, Value, Line, Column, Index}
 }
 

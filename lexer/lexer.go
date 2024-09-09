@@ -8,7 +8,7 @@ import (
 
 var EOFCHAR rune = 0
 
-var CharTokens = map[rune]int{
+var CharTokens = map[rune]TokenType{
 	'{': LBRACE,
 	'}': RBRACE,
 	'[': LBRACKET,
@@ -17,7 +17,7 @@ var CharTokens = map[rune]int{
 	',': COMMA,
 }
 
-var KeywordTokens = map[string]int{
+var KeywordTokens = map[string]TokenType{
 	"true":  BOOLEAN,
 	"false": BOOLEAN,
 	"null":  NULL,
@@ -62,7 +62,7 @@ func NewLexer(input string) *Lexer {
 	return l
 }
 
-func (l *Lexer) makeToken(Type int, Value string) *Token {
+func (l *Lexer) makeToken(Type TokenType, Value string) *Token {
 	return newToken(Type, Value, l.line, l.column, l.index)
 }
 
