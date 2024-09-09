@@ -42,7 +42,7 @@ func (o Object) GetType() string {
 }
 
 func NewObject() *Object {
-	return &Object{Type: "Object"}
+	return &Object{Type: "Object", Members: make([]*Property, 0)}
 }
 
 type Array struct {
@@ -55,7 +55,7 @@ func (a Array) GetType() string {
 }
 
 func NewArray() *Array {
-	return &Array{Type: "Array"}
+	return &Array{Type: "Array", Elements: make([]Stmt, 0)}
 }
 
 // Literals
