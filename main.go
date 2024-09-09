@@ -19,17 +19,30 @@ func main() {
 	}
 
 	filePath := os.Args[1]
-	// filePath := "./testdata/step2/valid.json" // FIXME: for debugging only
+	// filePath := "./testdata/final/fail22.json" // FIXME: for debugging only
 
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
+		logger.Fatalln(err)
 	}
+	fmt.Println("Input Data: ")
+	fmt.Println(string(data))
+	fmt.Println()
 
 	lex := lexer.NewLexer(string(data))
 	p := parser.NewParser(lex)
-	stmt := p.Parse().Body
+	json := p.Parse()
+	ast := p.GetAST()
+
 	litter.Config.StripPackageNames = true
-	litter.Dump(stmt)
+	fmt.Println("Json: ")
+	litter.Dump(json)
+	fmt.Println("\nAST: ")
+	litter.Dump(ast)
+
+	// f, _ := os.Open(filePath)
+	// var jsonData map[string]interface{}
+	// decoder := json.NewDecoder(f)
+	// _ = decoder.Decode(&jsonData)
+	// litter.Dump(jsonData)
 }

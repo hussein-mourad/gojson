@@ -1,10 +1,10 @@
 package parser
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/hussein-mourad/go-json-parser/ast"
 	"github.com/hussein-mourad/go-json-parser/lexer"
@@ -49,6 +49,7 @@ func (p *Parser) parseValue() (interface{}, ast.Stmt) {
 		p.eat()
 		return nil, nil
 	}
+	p.error("Unexpected charater")
 	return nil, nil
 }
 
@@ -89,7 +90,7 @@ func (p *Parser) parseArray() ([]interface{}, *ast.Array) {
 		arr = append(arr, value)
 		arrStmt.Elements = append(arrStmt.Elements, stmt)
 		p.notExpect(lexer.EOF, "Unexpected end of file")
-		p.expectIn(fmt.Sprintf("Unexpected %v", p.at().Value), lexer.COMMA, lexer.RBRACKET)
+		p.expectIn("Unexpected character", lexer.COMMA, lexer.RBRACKET)
 		if p.currentToken.Type == lexer.COMMA {
 			p.eat()
 			p.notExpect(lexer.RBRACKET, "Unexpected character")
@@ -100,7 +101,16 @@ func (p *Parser) parseArray() ([]interface{}, *ast.Array) {
 }
 
 func (p *Parser) parseString() (interface{}, *ast.StringLiteral) {
+	// invalidChars := []string{
+	// 	"\t", "\n", "\\x",
+	// }
+	//
 	value := p.eat().Value
+	// for _, invalidChar := range invalidChars {
+	// 	if strings.Contains(value, invalidChar) {
+	// 		p.error("Unexpected character")
+	// 	}
+	// }
 	return value, ast.NewStringLiteral(value)
 }
 
@@ -142,6 +152,19 @@ func (p *Parser) parserInt(value string) (int64, error) {
 	return 0, err
 }
 
+func (p *Parser) isValidKey(key string) bool {
+	isValid := true
+	invalidChars := []string{
+		"\t", "\n", "\\x",
+	}
+	for _, invalidChar := range invalidChars {
+		if strings.Contains(key, invalidChar) {
+			isValid = false
+		}
+	}
+	return isValid
+}
+
 func (p *Parser) GetAST() *ast.Document {
 	return p.ast
 }
@@ -158,8 +181,15 @@ func (p *Parser) eat() *lexer.Token {
 	// Returns the previous token and then advances
 	prev := p.currentToken
 	p.currentToken = p.lexer.NextToken()
-	fmt.Println(p.currentToken) // FIXME: debugging only
+	// fmt.Println(p.currentToken) // FIXME: debugging only
 	return prev
+}
+
+func (p *Parser) expectValue(err string) {
+	types := []lexer.TokenType{
+		lexer.STRING, lexer.NUMBER, lexer.LBRACE, lexer.LBRACKET,
+	}
+	p.expectIn(err, types...)
 }
 
 func (p *Parser) expectIn(err string, Types ...lexer.TokenType) {
