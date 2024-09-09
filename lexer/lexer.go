@@ -2,11 +2,14 @@ package lexer
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"unicode"
 )
 
 var EOFCHAR rune = 0
+
+var logger = log.New(os.Stderr, "", 0)
 
 var CharTokens = map[rune]TokenType{
 	'{': LBRACE,
@@ -116,6 +119,8 @@ func (l *Lexer) readString() *Token {
 				// add \u to the string
 				str += string('\\')
 				s = 'u'
+			} else {
+				l.error("Unexpected characater")
 			}
 		}
 		str += string(s)
@@ -152,7 +157,7 @@ func (l *Lexer) readNumbers() *Token {
 		return nil
 	}
 	var num string
-	for unicode.IsDigit(l.at()) || IsOneOfMany(l.at(), '-', '.', 'e', 'E', '+') {
+	for unicode.IsDigit(l.at()) || l.IsOneOfMany('-', '.', 'e', 'E', '+') {
 		num += string(l.at())
 		l.advance()
 	}
@@ -194,26 +199,24 @@ func (l *Lexer) at() rune {
 	return EOFCHAR
 }
 
-func (l *Lexer) errorEOF() {
-	fmt.Printf("Error: Unexpected end of file at line: %v, column: %v\n", l.line, l.column)
-	os.Exit(1)
-}
-
-func (l *Lexer) errorUnexpectedChar(char rune) {
-	fmt.Printf("Error: Unexpected character %c at line: %v, column: %v\n", char, l.line, l.column)
-	os.Exit(1)
-}
-
-func (l *Lexer) error(msg string) {
-	fmt.Printf("Error: %v at line: %v, column: %v\n", msg, l.line, l.column)
-	os.Exit(1)
-}
-
-func IsOneOfMany(value rune, expected ...rune) bool {
+func (l *Lexer) IsOneOfMany(expected ...rune) bool {
+	// Is the current character in the list of characters
 	for _, e := range expected {
-		if value == e {
+		if l.at() == e {
 			return true
 		}
 	}
 	return false
+}
+
+func (l *Lexer) errorEOF() {
+	l.error("Unexpected end of file")
+}
+
+func (l *Lexer) errorUnexpectedChar(char rune) {
+	l.error(fmt.Sprintf("Unexpected character %c", char))
+}
+
+func (l *Lexer) error(msg string) {
+	logger.Fatalf("Error: %v at line: %v, column: %v\n", msg, l.line, l.column)
 }
