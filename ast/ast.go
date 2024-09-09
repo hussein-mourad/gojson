@@ -6,7 +6,7 @@ type Stmt interface {
 
 type Document struct {
 	Type string
-	Body Stmt
+	Body *Stmt
 }
 
 func (d Document) GetType() string {
@@ -19,8 +19,8 @@ func NewDocument() *Document {
 
 type Property struct {
 	Type  string
-	Key   Identifier
-	Value Literal
+	Key   *Identifier
+	Value *Literal
 }
 
 func (p Property) GetType() string {
@@ -33,7 +33,7 @@ func NewProperty() *Property {
 
 type Object struct {
 	Type    string
-	members []Stmt
+	Members []Stmt
 }
 
 func (o Object) GetType() string {
@@ -46,7 +46,7 @@ func NewObject() *Object {
 
 type Array struct {
 	Type     string
-	elements []Stmt
+	Elements []Stmt
 }
 
 func (a Array) GetType() string {
@@ -77,25 +77,25 @@ func (s StringLiteral) GetValue() string {
 	return s.Value
 }
 
-func NewStringLiteral() *StringLiteral {
-	return &StringLiteral{Type: "String"}
+func NewStringLiteral(Value string) *StringLiteral {
+	return &StringLiteral{Type: "String", Value: Value}
 }
 
 type NumberLiteral struct {
 	Type  string
-	Value float64
+	Value interface{}
 }
 
 func (n NumberLiteral) GetType() string {
 	return n.Type
 }
 
-func (n NumberLiteral) GetValue() float64 {
+func (n NumberLiteral) GetValue() interface{} {
 	return n.Value
 }
 
-func NewNumberLiteral() *NumberLiteral {
-	return &NumberLiteral{Type: "Number"}
+func NewNumberLiteral(Value interface{}) *NumberLiteral {
+	return &NumberLiteral{Type: "Number", Value: Value}
 }
 
 type BooleanLiteral struct {
@@ -103,8 +103,8 @@ type BooleanLiteral struct {
 	Value bool
 }
 
-func NewBooleanLiteral() *BooleanLiteral {
-	return &BooleanLiteral{Type: "Boolean"}
+func NewBooleanLiteral(Value bool) *BooleanLiteral {
+	return &BooleanLiteral{Type: "Boolean", Value: Value}
 }
 
 func (b BooleanLiteral) GetType() string {
