@@ -10,6 +10,7 @@
       "request": "launch",
       "mode": "auto",
       "program": ".",
+      "args": ["./testdata/final/fail22.json"],
       "dlvFlags": ["--check-go-version=false"]
     }
   ]

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -31,14 +32,40 @@ func main() {
 
 	lex := lexer.NewLexer(string(data))
 	p := parser.NewParser(lex)
-	json := p.Parse()
-	ast := p.GetAST()
+	jsonData := p.Parse()
+	astData := p.GetAST()
 
 	litter.Config.StripPackageNames = true
 	fmt.Println("Json: ")
-	litter.Dump(json)
+	litter.Dump(jsonData)
 	fmt.Println("\nAST: ")
-	litter.Dump(ast)
+	litter.Dump(astData)
+
+	outputJSON, err := json.Marshal(astData)
+	file, err := os.Create("ast.json")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer file.Close()
+	_, err = file.Write(outputJSON)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	outputJSON, err = json.Marshal(jsonData)
+	file, err = os.Create("data.json")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer file.Close()
+	_, err = file.Write(outputJSON)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	// f, _ := os.Open(filePath)
 	// var jsonData map[string]interface{}
