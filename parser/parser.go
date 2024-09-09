@@ -24,7 +24,7 @@ func NewParser(lexer *lexer.Lexer) *Parser {
 
 func (p *Parser) nextToken() {
 	p.curToken = *p.lexer.NextToken()
-	fmt.Println(p.curToken.String()) // Debug
+	fmt.Println(p.curToken) // Debug
 	// if p.curToken.Type == UNKOWN {
 	// 	logger.Fatalf("error: unexpected token %v at line %v column %v\n", p.curToken.Value, p.curToken.Line, p.curToken.Column)
 	// }
@@ -52,7 +52,7 @@ func (p *Parser) parseNumber() interface{} {
 	return nil
 }
 
-func (p *Parser) parse() interface{} {
+func (p *Parser) Parse() interface{} {
 	// JSON must be an array or an object
 	if p.curToken.Type != lexer.LBRACE && p.curToken.Type != lexer.LBRACKET {
 		logger.Fatalf("error: unexpected %v at line: %v column: %v", p.curToken.Value, p.curToken.Line, p.curToken.Column)
